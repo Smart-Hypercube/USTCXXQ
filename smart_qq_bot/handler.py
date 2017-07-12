@@ -1,18 +1,13 @@
-# coding: utf-8
+# coding=utf-8
+
 from collections import defaultdict, namedtuple
 from threading import Thread
+from queue import Queue
 
-from six import iteritems
-from six.moves.queue import Queue
-from six.moves import range
-
-from smart_qq_bot.bot import QQBot
-from smart_qq_bot.logger import logger
-from smart_qq_bot.excpetions import (
-    MsgProxyNotImplementError,
-    InvalidHandlerType,
-)
-from smart_qq_bot.messages import MSG_TYPE_MAP
+from .bot import QQBot
+from .logger import logger
+from .excpetions import MsgProxyNotImplementError, InvalidHandlerType
+from .messages import MSG_TYPE_MAP
 
 __all__ = (
     # functions
@@ -39,8 +34,6 @@ Task = namedtuple("Task", ("func", "name", "kwargs"))
 def register(func, msg_type=None, dispatcher_name=None, active_by_default=True, accept_self=False):
     """
     Register handler to RAW if msg_type not given.
-    :type func: callable
-    :type msg_type: str or unicode
     """
     if msg_type and msg_type not in MSG_TYPE_MAP:
         raise InvalidHandlerType(
@@ -58,7 +51,7 @@ def register(func, msg_type=None, dispatcher_name=None, active_by_default=True, 
 
 def list_handlers():
     handler_list = []
-    for _, handlers in iteritems(_registry):
+    for _, handlers in _registry.items():
         handler_list.extend(
             [handler.name for handler in handlers]
         )
@@ -149,7 +142,7 @@ class MessageObserver(object):
             )
         self.bot = bot
         self.handler_queue = Queue()
-        self.workers = [Worker(self.handler_queue) for i in range(workers)]
+        self.workers = [Worker(self.handler_queue) for _ in range(workers)]
         for worker in self.workers:
             worker.setDaemon(True)
             worker.start()

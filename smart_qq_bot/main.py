@@ -1,27 +1,18 @@
-# -*- coding: utf-8 -*-
+# coding=utf-8
+
 import argparse
 import logging
 import os
 import socket
-import sys
 import threading
 
-from six import PY2
-from six import iteritems
-
-from smart_qq_bot.config import COOKIE_FILE
-from smart_qq_bot.logger import logger
-from smart_qq_bot.app import bot, plugin_manager
-from smart_qq_bot.handler import MessageObserver
-from smart_qq_bot.messages import mk_msg
-from smart_qq_bot.excpetions import ServerResponseEmpty, NeedRelogin
-from smart_qq_bot.signals import bot_inited_registry
-
-
-def patch():
-    if PY2:
-        reload(sys)
-        sys.setdefaultencoding("utf-8")
+from .config import COOKIE_FILE
+from .logger import logger
+from .app import bot, plugin_manager
+from .handler import MessageObserver
+from .messages import mk_msg
+from .excpetions import ServerResponseEmpty, NeedRelogin
+from .signals import bot_inited_registry
 
 
 def clean_cookie():
@@ -30,33 +21,19 @@ def clean_cookie():
     logger.info("Cookie file removed.")
 
 
-def run_http_daemon(host="0.0.0.0", port=8888):
-    from threading import Thread
-    from smart_qq_bot.httpserver import run_server
-    daemon = Thread(
-        target=run_server,
-        kwargs={"host": host, "port": port}
-    )
-    daemon.setDaemon(True)
-    daemon.start()
-
-
-def main_loop(no_gui=False, new_user=False, debug=False, http=False):
-    patch()
+def main_loop(new_user=False, debug=False):
     if debug:
         logger.setLevel(logging.DEBUG)
     else:
         logger.setLevel(logging.INFO)
-    if http:
-        run_http_daemon()
     logger.info("Initializing...")
     plugin_manager.load_plugin()
     if new_user:
         clean_cookie()
-    bot.login(no_gui)
+    bot.login()
     observer = MessageObserver(bot)
 
-    for name, func in iteritems(bot_inited_registry):
+    for name, func in bot_inited_registry.items():
         try:
             t = threading.Thread(target=func, args=(bot,))
             t.daemon = True
@@ -114,4 +91,3 @@ def run():
 
 if __name__ == "__main__":
     run()
-

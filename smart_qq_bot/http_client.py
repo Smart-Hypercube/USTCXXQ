@@ -1,22 +1,17 @@
-# -*- coding: utf-8 -*-
-from six.moves import http_cookiejar as cookielib
+# coding=utf-8
+
 import time
 import os
-
 import requests
 from requests import exceptions as excps
+from http import cookiejar
 
-
-from smart_qq_bot.config import (
-    SMART_QQ_REFER,
-    COOKIE_FILE,
-    SSL_VERIFY,
-)
-from smart_qq_bot.logger import logger
+from .config import SMART_QQ_REFER, COOKIE_FILE, SSL_VERIFY
+from .logger import logger
 
 
 def _get_cookiejar(cookie_file):
-    return cookielib.LWPCookieJar(cookie_file)
+    return cookiejar.LWPCookieJar(cookie_file)
 
 
 class HttpClient(object):
@@ -51,7 +46,7 @@ class HttpClient(object):
     def load_cookie(self):
         try:
             self._cookies.load(ignore_discard=True, ignore_expires=True)
-        except :
+        except:
             logger.warn("Failed to load cookie file {0}".format(self._cookie_file))
         finally:
             self._cookies.save(ignore_discard=True, ignore_expires=True)

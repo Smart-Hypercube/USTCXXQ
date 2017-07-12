@@ -1,4 +1,4 @@
-# coding: utf-8
+# coding=utf-8
 
 
 class MsgProxyNotImplementError(ValueError):
@@ -19,6 +19,7 @@ class ConfigKeyError(ValueError):
 
 class ServerResponseEmpty(IOError):
     pass
+
 
 class NeedRelogin(SystemExit):
     pass

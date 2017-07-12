@@ -1,6 +1,4 @@
-# coding: utf-8
-import six
-
+# coding=utf-8
 
 PRIVATE_MSG = "message"
 GROUP_MSG = "group_message"
@@ -42,7 +40,7 @@ class QMessage(object):
     def content(self):
         text = ""
         for msg_part in self._content:
-            if isinstance(msg_part, six.string_types):
+            if isinstance(msg_part, str):
                 text += msg_part
             elif len(msg_part) > 1:
                 if str(msg_part[0]) == OFF_PIC_PART:
@@ -59,11 +57,8 @@ class QMessage(object):
     def __str__(self):
         return "<class {cls}: {content}>".format(
             cls=self.__class__.__name__,
-            content=self.poll_type + " " + six.text_type(self._content)
+            content=self.poll_type + " " + str(self._content)
         )
-
-    def __unicode__(self):
-        return six.text_type(self.__str__())
 
 
 class SessMsg(QMessage):
@@ -131,7 +126,6 @@ class GroupMsg(QMessage):
         # qq_info = self.bot.get_group_member_info(str(self.group_code), self.send_uin)
         # name_info = self.bot.search_group_members(self.src_group_id)
 
-
         # for tmp in name_info:
         #     if str(tmp.get('u')) == str(qq_info.get('nick')): # qq_info.get('nick') 实际上是qq号
         #         return tmp.get('n', "")
@@ -156,6 +150,7 @@ class GroupMsg(QMessage):
         # qq_info = self.bot.get_group_member_info(str(self.group_code), self.send_uin)
 
         # return str(qq_info.get('nick'))
+
 
 class DiscussMsg(QMessage):
     """
@@ -191,6 +186,7 @@ MSG_TYPE_MAP = {
     PRIVATE_MSG: PrivateMsg,
     DISCUSS_MSG: DiscussMsg,
 }
+
 
 def mk_msg(msg_dict, bot_instance):
     return MSG_TYPE_MAP[msg_dict['poll_type']](msg_dict, bot_instance)

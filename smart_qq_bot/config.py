@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
-# Code by Yinzo:        https://github.com/Yinzo
-# Origin repository:    https://github.com/Yinzo/SmartQQBot
+# coding=utf-8
+
 import logging
 import os
-
 
 PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 SMART_QQ_REFER = "http://d1.web2.qq.com/proxy.html?v=20030916001&callback=1&id=2"
@@ -17,6 +15,7 @@ COOKIE_FILE = 'cookie/cookie.data'
 
 SSL_VERIFY = True
 
+
 def init_logging(logger, log_level=logging.DEBUG):
     assert isinstance(logger, logging.Logger)
 
@@ -27,4 +26,3 @@ def init_logging(logger, log_level=logging.DEBUG):
     ch.setLevel(log_level)
     ch.setFormatter(formatter)
     logger.addHandler(ch)
-

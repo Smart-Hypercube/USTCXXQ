@@ -1,37 +1,18 @@
-# -*- coding: utf-8 -*-
-# Code by Yinzo:        https://github.com/Yinzo
-# Origin repository:    https://github.com/Yinzo/SmartQQBot
+# coding=utf-8
+
 import datetime
 import os
 import time
 import re
 import json
 from random import randint
-from threading import Thread
+from html import unescape as html_unescape
 
-try:
-    from html import unescape as html_unescape
-except ImportError:
-    from HTMLParser import HTMLParser
-    html_parser = HTMLParser()
-    def html_unescape(s):
-        return html_parser.unescape(s)
-
-def unescape_json_response(s):
-    return html_unescape(s.replace('&#92;', r'\\').replace('&quot;', r'\"')).replace(u"\xa0", ' ')
-
-
-from smart_qq_bot.logger import logger
-from smart_qq_bot.config import QR_CODE_PATH, SMART_QQ_REFER
-from smart_qq_bot.http_client import HttpClient
-from smart_qq_bot.excpetions import NeedRelogin
-from smart_qq_bot.messages import (
-    QMessage,
-    GroupMsg,
-    PrivateMsg,
-    SessMsg,
-    DiscussMsg,
-)
+from .logger import logger
+from .config import QR_CODE_PATH, SMART_QQ_REFER
+from .http_client import HttpClient
+from .excpetions import NeedRelogin
+from .messages import QMessage, GroupMsg, PrivateMsg, SessMsg, DiscussMsg
 
 QR_CODE_STATUS = {
     "qr_code_expired": 65,
@@ -47,37 +28,16 @@ MESSAGE_SENT = {
 }
 
 
+def unescape_json_response(s):
+    return html_unescape(s.replace('&#92;', r'\\').replace('&quot;', r'\"')).replace(u"\xa0", ' ')
+
+
 class CookieLoginFailed(UserWarning):
     pass
 
 
 class QRLoginFailed(UserWarning):
     pass
-
-
-def show_qr(path):
-    import platform
-    try:
-        from six.moves.tkinter import Tk, Label
-    except ImportError:
-        raise SystemError('缺少Tkinter模块, 可使用sudo pip install Tkinter尝试安装')
-    try:
-        from PIL import ImageTk, Image
-    except ImportError:
-        raise SystemError('缺少PIL模块, 可使用sudo pip install PIL尝试安装')
-
-    system = platform.system()
-    if system == 'Darwin':  # 如果是Mac OS X
-        img = Image.open(path)
-        img.show()
-    else:
-        root = Tk()
-        img = ImageTk.PhotoImage(
-            Image.open(path)
-        )
-        panel = Label(root, image=img)
-        panel.pack(side="bottom", fill="both", expand="yes")
-        root.mainloop()
 
 
 def find_first_result(html, regxp, error, raise_exception=False):
@@ -146,34 +106,35 @@ class QQBot(object):
         :param ptwebqq:
         :return:
         """
-        N = [0, 0, 0, 0]
+        n = [0, 0, 0, 0]
         # print(N[0])
         for t in range(len(ptwebqq)):
-            N[t % 4] ^= ord(ptwebqq[t])
-        U = ["EC", "OK"]
-        V = [0, 0, 0, 0]
-        V[0] = int(uin) >> 24 & 255 ^ ord(U[0][0])
-        V[1] = int(uin) >> 16 & 255 ^ ord(U[0][1])
-        V[2] = int(uin) >> 8 & 255 ^ ord(U[1][0])
-        V[3] = int(uin) & 255 ^ ord(U[1][1])
-        U = [0, 0, 0, 0, 0, 0, 0, 0]
-        for T in range(8):
-            if T % 2 == 0:
-                U[T] = N[T >> 1]
+            n[t % 4] ^= ord(ptwebqq[t])
+        u = ["EC", "OK"]
+        v = [0, 0, 0, 0]
+        v[0] = int(uin) >> 24 & 255 ^ ord(u[0][0])
+        v[1] = int(uin) >> 16 & 255 ^ ord(u[0][1])
+        v[2] = int(uin) >> 8 & 255 ^ ord(u[1][0])
+        v[3] = int(uin) & 255 ^ ord(u[1][1])
+        u = [0, 0, 0, 0, 0, 0, 0, 0]
+        for t in range(8):
+            if t % 2 == 0:
+                u[t] = n[t >> 1]
             else:
-                U[T] = V[T >> 1]
-        N = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"]
-        V = ""
-        for T in range(len(U)):
-            V += N[U[T] >> 4 & 15]
-            V += N[U[T] & 15]
-        return V
+                u[t] = v[t >> 1]
+        n = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"]
+        v = ""
+        for t in range(len(u)):
+            v += n[u[t] >> 4 & 15]
+            v += n[u[t] & 15]
+        return v
 
     def _get_group_sig(self, guin, tuin, service_type=0):
         key = '%s --> %s' % (guin, tuin)
         if key not in self._group_sig_list:
-            url = "http://d1.web2.qq.com/channel/get_c2cmsg_sig2?id=%s&to_uin=%s&service_type=%s&clientid=%s&psessionid=%s&t=%d" % (
-                guin, tuin, service_type, self.client_id, self.psessionid, int(time.time() * 100))
+            url = "http://d1.web2.qq.com/channel/get_c2cmsg_sig2?" \
+                "id=%s&to_uin=%s&service_type=%s&clientid=%s&psessionid=%s&t=%d" % (
+                    guin, tuin, service_type, self.client_id, self.psessionid, int(time.time() * 100))
             response = self.client.get(url)
             rsp_json = json.loads(response)
             if rsp_json["retcode"] != 0:
@@ -238,7 +199,7 @@ class QQBot(object):
         logger.info("Login by cookie succeed. account: %s" % self.account)
         return True
 
-    def _login_by_qrcode(self, no_gui):
+    def _login_by_qrcode(self):
         logger.info("RUNTIMELOG Trying to login by qrcode.")
         logger.info("RUNTIMELOG Requesting the qrcode login pages...")
         qr_validation_url = 'https://ssl.ptlogin2.qq.com/ptqrlogin?' \
@@ -283,9 +244,7 @@ class QQBot(object):
         start_time = date_to_millis(datetime.datetime.utcnow())
 
         error_times = 0
-        ret_code = None
         login_result = None
-        redirect_url = None
 
         while True:
             error_times += 1
@@ -295,10 +254,6 @@ class QQBot(object):
                 self.qrcode_path
             )
             qrsig = self.client.get_cookie('qrsig')
-            if not no_gui:
-                thread = Thread(target=show_qr, args=(self.qrcode_path, ))
-                thread.setDaemon(True)
-                thread.start()
 
             while True:
                 ret_code, redirect_url = self._get_qr_login_status(
@@ -329,11 +284,12 @@ class QQBot(object):
             logger.debug("QR Login redirect_url response: %s" % html)
             return True
 
-    def _hash_for_qrsig(self, qrsig):
+    @staticmethod
+    def _hash_for_qrsig(qrsig):
         e = 0
         for i in qrsig:
             e += (e << 5) + ord(i)
-        return 2147483647 & e;
+        return 2147483647 & e
 
     def _get_qr_login_status(
             self, qr_validation_url, appid, star_time,
@@ -358,13 +314,13 @@ class QQBot(object):
             redirect_url = redirect_info[0]
         return ret_code, redirect_url
 
-    def login(self, no_gui=False):
+    def login(self):
         try:
             self._login_by_cookie()
         except CookieLoginFailed as e:
             logger.exception(e)
             while True:
-                if self._login_by_qrcode(no_gui):
+                if self._login_by_qrcode():
                     if self._login_by_cookie():
                         break
                 time.sleep(4)
@@ -394,7 +350,7 @@ class QQBot(object):
             if self.uin == 0:
                 info = self.get_friend_info(msg_uin)
 
-                if info and info.get('nick',"") == self.username:
+                if info and info.get('nick', '') == self.username:
                     self.uin = msg_uin
                     return True
 
@@ -402,7 +358,6 @@ class QQBot(object):
                 return True
 
         return False
-
 
     def check_msg(self):
 
@@ -504,7 +459,7 @@ class QQBot(object):
                     #     break
                     if friend['name'] == tgt[0]:
                         if str(tgt[1]) not in result_dict:
-                            result_dict[str(tgt[1])] = str(friend['uin']) # 这个uin是真实qq号
+                            result_dict[str(tgt[1])] = str(friend['uin'])  # 这个uin是真实qq号
                         else:
                             duplicated_name.add(tgt[0])
                             result_dict[str(tgt[1])] = ""
@@ -522,7 +477,6 @@ class QQBot(object):
 
         except Exception as e:
             logger.warning("获取好友真实qq号失败, {}".format(e))
-
 
     def uin_to_account(self, tuin):
         """
@@ -597,7 +551,7 @@ class QQBot(object):
         while retry_times:
             logger.info("RUNTIMELOG Requesting the online buddies.")
             response = self.client.get(
-                'http://d1.web2.qq.com/channel/get_online_buddies2?vfwebqq={0}&clientid={1}&psessionid={2}&t={3}'.format(
+                'http://d1.web2.qq.com/channel/get_online_buddies2?vfwebqq=%s&clientid=%s&psessionid=%s&t=%s' % (
                     self.vfwebqq,
                     self.client_id,
                     self.psessionid,
@@ -620,7 +574,29 @@ class QQBot(object):
         """
         获取好友详情信息
         get_friend_info
-        {"retcode":0,"result":{"face":0,"birthday":{"month":1,"year":1989,"day":30},"occupation":"","phone":"","allow":1,"college":"","uin":3964575484,"constel":1,"blood":3,"homepage":"http://blog.lovewinne.com","stat":20,"vip_info":0,"country":"中国","city":"","personal":"","nick":" 信","shengxiao":5,"email":"John123951@126.com","province":"山东","gender":"male","mobile":"158********"}}
+        {"retcode":0,"result":{
+            "face":0,
+            "birthday":{"month":1,"year":1989,"day":30},
+            "occupation":"",
+            "phone":"",
+            "allow":1,
+            "college":"",
+            "uin":3964575484,
+            "constel":1,
+            "blood":3,
+            "homepage":"http://blog.lovewinne.com",
+            "stat":20,
+            "vip_info":0,
+            "country":"中国",
+            "city":"",
+            "personal":"",
+            "nick":" 信",
+            "shengxiao":5,
+            "email":"John123951@126.com",
+            "province":"山东",
+            "gender":"male",
+            "mobile":"158********"}
+        }
         :return:dict
         """
 
@@ -628,7 +604,7 @@ class QQBot(object):
         if uin not in self.friend_uin_list:
             logger.info("RUNTIMELOG Requesting the account info by uin: {}".format(uin))
             info = json.loads(self.client.get(
-                'http://s.web2.qq.com/api/get_friend_info2?tuin={0}&vfwebqq={1}&clientid={2}&psessionid={3}&t={4}'.format(
+                'http://s.web2.qq.com/api/get_friend_info2?tuin=%s&vfwebqq=%s&clientid=%s&psessionid=%s&t=%s' % (
                     uin,
                     self.vfwebqq,
                     self.client_id,
@@ -668,7 +644,6 @@ class QQBot(object):
     def get_group_list_with_group_code(self):
         """
         获取包含群名和group_code的列表, 并存入cache, 其中code为group_code
-        :type group_code: str
         :return:list
         [
             {
@@ -685,10 +660,6 @@ class QQBot(object):
             }
         ]
         """
-
-
-
-
         logger.info("Requesting the group list.")
         response = self.client.post(
             'http://s.web2.qq.com/api/get_group_name_list_mask2',
@@ -718,7 +689,6 @@ class QQBot(object):
     def get_group_list_with_group_id(self):
         """
         获取包含群名和群号的列表, 并存入cache, 其中gc为群号
-        :type group_id: str
         :return:list
 
         return list sample
@@ -774,7 +744,7 @@ class QQBot(object):
                     return []
             else:
                 logger.warning("get_group_list code unknown: {}".format(response))
-                return None
+                return []
 
     def get_true_group_code(self, fake_group_code):
         """
@@ -969,16 +939,26 @@ class QQBot(object):
         """
         获取指定讨论组的成员信息
         :did: str
-        {u'result': {u'info': {u'did': 2966596468, u'discu_name': u'', u'mem_list': [{u'ruin': 466331599, u'mem_uin': 466331599}, {u'ruin': 493658515, u'mem_uin': 556813270}, {u'ruin': 824566900, u'mem_uin': 2606746705}]}, u'mem_status': [], u'mem_info': [{u'nick': u'\\u54a6', u'uin': 466331599}, {u'nick': u'Auro', u'uin': 556813270}, {u'nick': u'-', u'uin': 2606746705}]}, u'retcode': 0}
+        {u'result': {
+            u'info': {
+                u'did': 2966596468,
+                u'discu_name': u'',
+                u'mem_list': [{u'ruin': 466331599, u'mem_uin': 466331599}]},
+            u'mem_status': [],
+            u'mem_info': [{u'nick': u'\\u54a6', u'uin': 466331599}]},
+        u'retcode': 0}
         :rtype: dict
         """
         if did == 0:
             return
         try:
             did = str(did)
-            url = "http://d1.web2.qq.com/channel/get_discu_info?did={did}&psessionid={psessionid}&vfwebqq={vfwebqq}&clientid={clientid}&t={t}".format(
-                did=did, psessionid=self.psessionid, vfwebqq=self.vfwebqq, clientid=self.client_id,
-                t=int(time.time() * 100)
+            url = "http://d1.web2.qq.com/channel/get_discu_info?did=%s&psessionid=%s&vfwebqq=%s&clientid=%s&t=%s" % (
+                did,
+                self.psessionid,
+                self.vfwebqq,
+                self.client_id,
+                int(time.time() * 100),
             )
             response = self.client.get(url)
             rsp_json = json.loads(response)
@@ -1021,23 +1001,24 @@ class QQBot(object):
     # 发送群消息
     def send_group_msg(self, reply_content, group_code, msg_id, fail_times=0):
         chunk_length = 500
+        ret = None
         for i in range(0, len(reply_content), chunk_length):
             reply_content_partial = reply_content[0+i:chunk_length+i]
             ret = self.send_group_msg_partial(reply_content_partial, group_code, msg_id, fail_times)
-        return ret;
+        return ret
 
-    def _quote(self, content):
-        return str(content.replace("\\", r"\\")
-                .replace("\r", r"\r")
-                .replace("\n", r"\n")
-                .replace('"', r'\"')
-                .replace("\t", r"\t")
-                )
-
-    injection_escape_regex = re.compile(r"(\band|\bor|\bxor|(?:^| )&&|(?:^| )\|\|)( +not|)( *'| +[0-9]+ )", re.I);
-    def quote(self, content):
-        content = self.injection_escape_regex.sub(r'\1_\2\3', content)
-        return self._quote(self._quote(content))
+    @staticmethod
+    def quote(content):
+        def _quote(c):
+            return str(c.replace("\\", r"\\")
+                       .replace("\r", r"\r")
+                       .replace("\n", r"\n")
+                       .replace('"', r'\"')
+                       .replace("\t", r"\t")
+                       )
+        injection_escape_regex = re.compile(r"(\band|\bor|\bxor|(?:^| )&&|(?:^| )\|\|)( +not|)( *'| +[0-9]+ )", re.I)
+        content = injection_escape_regex.sub(r'\1_\2\3', content)
+        return _quote(_quote(content))
 
     # 发送部分群消息
     def send_group_msg_partial(self, reply_content, group_code, msg_id, fail_times=0):
@@ -1047,9 +1028,10 @@ class QQBot(object):
             logger.info("Starting send group message: %s" % reply_content)
             req_url = "http://d1.web2.qq.com/channel/send_qun_msg2"
             data = {
-                'r':
-                 '{{"group_uin":{0}, "face":564,"content":"[\\"{4}\\",[\\"font\\",{{\\"name\\":\\"Arial\\",\\"size\\":\\"10\\",\\"style\\":[0,0,0],\\"color\\":\\"000000\\"}}]]","clientid":{1},"msg_id":{2},"psessionid":"{3}"}}'.format(
-                         group_code, self.client_id, msg_id, self.psessionid, fix_content),
+                'r': '{{"group_uin":%s,"face":564,"content":"[\\"%s\\",[\\"font\\",'
+                     '{{\\"name\\":\\"Arial\\",\\"size\\":\\"10\\",\\"style\\":[0,0,0],\\"color\\":\\"000000\\"}}'
+                     ']]","clientid":%s,"msg_id":%s,"psessionid":"%s"}}' % (
+                        group_code, fix_content, self.client_id, msg_id, self.psessionid),
                 'clientid': self.client_id,
                 'psessionid': self.psessionid
             }
@@ -1068,9 +1050,9 @@ class QQBot(object):
                 time.sleep(2)
                 self.send_group_msg(reply_content, group_code, msg_id, fail_times + 1)
             else:
-                logger.warning("RUNTIMELOG send_qun_msg: Response Error over 5 times.Exit.reply content:" + str(reply_content))
+                logger.warning("RUNTIMELOG send_qun_msg: Response Error over 5 times.Exit.reply content:" +
+                               str(reply_content))
                 return False
-
 
     # 发送私密消息
     def send_friend_msg(self, reply_content, uin, msg_id, fail_times=0):
@@ -1079,9 +1061,10 @@ class QQBot(object):
         try:
             req_url = "http://d1.web2.qq.com/channel/send_buddy_msg2"
             data = {
-                'r':
-                 '{{"to":{0}, "face":594, "content":"[\\"{4}\\", [\\"font\\", {{\\"name\\":\\"Arial\\", \\"size\\":\\"10\\", \\"style\\":[0, 0, 0], \\"color\\":\\"000000\\"}}]]", "clientid":{1}, "msg_id":{2}, "psessionid":"{3}"}}'.format(
-                         uin, self.client_id, msg_id, self.psessionid, fix_content),
+                'r': '{{"to":%s, "face":594, "content":"[\\"%s\\", [\\"font\\",'
+                     '{{\\"name\\":\\"Arial\\", \\"size\\":\\"10\\", \\"style\\":[0, 0, 0], \\"color\\":\\"000000\\"}}'
+                     ']]", "clientid":%s, "msg_id":%s, "psessionid":"%s"}}' % (
+                        uin, fix_content, self.client_id, msg_id, self.psessionid),
                 'clientid': self.client_id,
                 'psessionid': self.psessionid
             }
@@ -1110,9 +1093,10 @@ class QQBot(object):
             logger.info("Starting send discuss group message: %s" % reply_content)
             req_url = "http://d1.web2.qq.com/channel/send_discu_msg2"
             data = {
-                'r':
-                 '{{"did":{0}, "face":564,"content":"[\\"{4}\\",[\\"font\\",{{\\"name\\":\\"Arial\\",\\"size\\":\\"10\\",\\"style\\":[0,0,0],\\"color\\":\\"000000\\"}}]]","clientid":{1},"msg_id":{2},"psessionid":"{3}"}}'.format(
-                         did, self.client_id, msg_id, self.psessionid, fix_content),
+                'r': '{{"did":%s, "face":564,"content":"[\\"%s\\",[\\"font\\",'
+                     '{{\\"name\\":\\"Arial\\",\\"size\\":\\"10\\",\\"style\\":[0,0,0],\\"color\\":\\"000000\\"}}'
+                     ']]","clientid":%s,"msg_id":%s,"psessionid":"%s"}}' % (
+                        did, fix_content, self.client_id, msg_id, self.psessionid),
                 'clientid': self.client_id,
                 'psessionid': self.psessionid
             }
@@ -1131,14 +1115,15 @@ class QQBot(object):
                 time.sleep(2)
                 self.send_group_msg(reply_content, did, msg_id, fail_times + 1)
             else:
-                logger.warning("RUNTIMELOG send_qun_msg: Response Error over 5 times.Exit.reply content:" + str(reply_content))
+                logger.warning("RUNTIMELOG send_qun_msg: Response Error over 5 times.Exit.reply content:" +
+                               str(reply_content))
                 return False
-
 
     def reply_msg(self, msg, reply_content=None, return_function=False):
         """
         :type msg: QMessage类, 例如 GroupMsg, PrivateMsg, SessMsg
         :type reply_content: string, 回复的内容.
+        :type return_function:
         :return: 服务器的响应内容. 如果 return_function 为 True, 则返回的是一个仅有 reply_content 参数的便捷回复函数.
         """
         msg_id = randint(1, 100000)

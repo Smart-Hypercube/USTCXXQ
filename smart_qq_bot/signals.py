@@ -1,13 +1,9 @@
-# coding: utf-8
+# coding=utf-8
+
 from functools import wraps
 
-from smart_qq_bot.handler import (
-    register,
-)
-from smart_qq_bot.messages import (
-    GROUP_MSG,
-    PRIVATE_MSG,
-    DISCUSS_MSG)
+from .handler import register
+from .messages import GROUP_MSG, PRIVATE_MSG, DISCUSS_MSG
 
 bot_inited_registry = {}
 
@@ -28,8 +24,8 @@ def _mk_wrapper(msg_type):
             return wrapped
         else:
             def wrapper(new_func):
-                wrapped = _real_wrapper(new_func)
-                register(wrapped, msg_type, name or new_func.__name__, accept_self=accept_self)
+                wrapped_func = _real_wrapper(new_func)
+                register(wrapped_func, msg_type, name or new_func.__name__, accept_self=accept_self)
             return wrapper
     return _register_func
 

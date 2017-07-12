@@ -1,16 +1,14 @@
-# coding: utf-8
+# coding=utf-8
+
 import json
 import os
 import shutil
 
-from smart_qq_bot.logger import logger
-from smart_qq_bot.config import DEFAULT_PLUGIN_CONFIG
-from smart_qq_bot.excpetions import (
-    ConfigFileDoesNotExist,
-    ConfigKeyError,
-)
+from .logger import logger
+from .config import DEFAULT_PLUGIN_CONFIG
+from .excpetions import ConfigFileDoesNotExist, ConfigKeyError
 
-__all__ = ("PluginManager", )
+__all__ = ("PluginManager",)
 
 PLUGIN_PACKAGES = "plugin_packages"
 PLUGIN_ON = "plugin_on"
@@ -38,11 +36,10 @@ class PluginManager(object):
         self._load_config(config_file)
 
     def _load_config(self, config_file):
-        config = None
         if config_file is not None:
             # 指定了特定配置文件
             if os.path.isfile(config_file):
-                with open(config_file, "r") as f:
+                with open(config_file) as f:
                     config = json.load(f)
             else:
                 raise ConfigFileDoesNotExist(
@@ -50,14 +47,14 @@ class PluginManager(object):
                 )
         elif os.path.isfile(DEFAULT_PLUGIN_CONFIG):
             # 存在配置文件
-            with open(DEFAULT_PLUGIN_CONFIG, "r") as f:
+            with open(DEFAULT_PLUGIN_CONFIG) as f:
                 config = json.load(f)
 
         elif os.path.isfile(DEFAULT_PLUGIN_CONFIG + ".example"):
             # 不存在配置文件但有example文件
             shutil.copy(DEFAULT_PLUGIN_CONFIG + ".example", DEFAULT_PLUGIN_CONFIG)
             logger.warning("No plugin config file found. Auto copied.")
-            with open(DEFAULT_PLUGIN_CONFIG, "r") as f:
+            with open(DEFAULT_PLUGIN_CONFIG) as f:
                 config = json.load(f)
         else:
             # 缺少配置文件以及example文件
@@ -65,15 +62,14 @@ class PluginManager(object):
             logger.exception(exception_str)
             raise ConfigFileDoesNotExist(exception_str)
 
-        if config is not None:
-            for key in ("plugin_package", PLUGIN_ON):
-                if not isinstance(config.get("plugin_package", []), list):
-                    raise ConfigKeyError(
-                        "Config key [%s] has wrong type [%s]"
-                        % (key, type(config[PLUGIN_PACKAGES]))
-                    )
-            self.config[PLUGIN_PACKAGES] = config[PLUGIN_PACKAGES]
-            self.config[PLUGIN_ON] = config[PLUGIN_ON]
+        for key in ("plugin_package", PLUGIN_ON):
+            if not isinstance(config.get("plugin_package", []), list):
+                raise ConfigKeyError(
+                    "Config key [%s] has wrong type [%s]"
+                    % (key, type(config[PLUGIN_PACKAGES]))
+                )
+        self.config[PLUGIN_PACKAGES] = config[PLUGIN_PACKAGES]
+        self.config[PLUGIN_ON] = config[PLUGIN_ON]
 
     def load_plugin(self):
         self._load_default()
