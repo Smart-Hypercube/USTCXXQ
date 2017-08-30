@@ -62,18 +62,6 @@ def main_loop(new_user=False, debug=False):
 def run():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--no-gui",
-        action="store_true",
-        default=False,
-        help="Whether display QRCode with tk and PIL."
-    )
-    parser.add_argument(
-        "--http",
-        action="store_true",
-        default=False,
-        help="Whether launch a bottle server to serve qrcode."
-    )
-    parser.add_argument(
         "--new-user",
         action="store_true",
         default=False,

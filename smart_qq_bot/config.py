@@ -2,6 +2,7 @@
 
 import logging
 import os
+import json
 
 PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 SMART_QQ_REFER = "http://d1.web2.qq.com/proxy.html?v=20030916001&callback=1&id=2"
@@ -14,6 +15,9 @@ DEFAULT_PLUGIN_CONFIG = "config/plugin.json"
 COOKIE_FILE = 'cookie/cookie.data'
 
 SSL_VERIFY = True
+
+with open('config.json') as f:
+    CONFIG = json.load(f)
 
 
 def init_logging(logger, log_level=logging.DEBUG):

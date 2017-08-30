@@ -5,11 +5,12 @@ import os
 import time
 import re
 import json
+import requests
 from random import randint
 from html import unescape as html_unescape
 
 from .logger import logger
-from .config import QR_CODE_PATH, SMART_QQ_REFER
+from .config import QR_CODE_PATH, SMART_QQ_REFER, CONFIG
 from .http_client import HttpClient
 from .excpetions import NeedRelogin
 from .messages import QMessage, GroupMsg, PrivateMsg, SessMsg, DiscussMsg
@@ -253,6 +254,9 @@ class QQBot(object):
                 'https://ssl.ptlogin2.qq.com/ptqrshow?appid={0}&e=0&l=L&s=8&d=72&v=4'.format(appid),
                 self.qrcode_path
             )
+            with open(self.qrcode_path, 'rb') as f:
+                requests.post('https://api.telegram.org/bot%s/sendPhoto' % CONFIG['telegram_bot_token'],
+                              data={'chat_id': CONFIG['telegram_admin']}, files={'photo': f})
             qrsig = self.client.get_cookie('qrsig')
 
             while True:
@@ -400,7 +404,7 @@ class QQBot(object):
                 logger.debug("ptwebqq updated in this pooling")
         else:
             self._last_pool_success = False
-            if ret_code in (103, ):
+            if ret_code in (103,):
                 logger.info("Pooling received retcode: {}, trying to load online friends".format(str(ret_code)))
                 result = self.get_online_friends_list()
                 if result is None:
@@ -411,6 +415,8 @@ class QQBot(object):
                 logger.error("Pooling request error, response is: %s" % ret)
             elif ret_code == 100012:
                 raise NeedRelogin("Login is expired. Please relogin by qrcode")
+            elif ret_code == 100001:
+                raise NeedRelogin("Login expired. Please relogin")
             else:
                 logger.warning("Pooling returns unknown retcode %s" % ret_code)
         return None
@@ -1028,9 +1034,9 @@ class QQBot(object):
             logger.info("Starting send group message: %s" % reply_content)
             req_url = "http://d1.web2.qq.com/channel/send_qun_msg2"
             data = {
-                'r': '{{"group_uin":%s,"face":564,"content":"[\\"%s\\",[\\"font\\",'
-                     '{{\\"name\\":\\"Arial\\",\\"size\\":\\"10\\",\\"style\\":[0,0,0],\\"color\\":\\"000000\\"}}'
-                     ']]","clientid":%s,"msg_id":%s,"psessionid":"%s"}}' % (
+                'r': '{"group_uin":%d,"face":564,"content":"[\\"%s\\",[\\"font\\",'
+                     '{\\"name\\":\\"Arial\\",\\"size\\":\\"10\\",\\"style\\":[0,0,0],\\"color\\":\\"000000\\"}'
+                     ']]","clientid":%d,"msg_id":%d,"psessionid":"%s"}' % (
                         group_code, fix_content, self.client_id, msg_id, self.psessionid),
                 'clientid': self.client_id,
                 'psessionid': self.psessionid
@@ -1043,8 +1049,10 @@ class QQBot(object):
             logger.debug("RESPONSE send_qun_msg: Reply response: " + str(rsp))
             return rsp_json
         except:
+            import traceback
+            traceback.print_exc()
             logger.warning("RUNTIMELOG send_qun_msg fail")
-            if fail_times < 5:
+            if fail_times < 2:
                 logger.warning("RUNTIMELOG send_qun_msg: Response Error.Wait for 2s and Retrying." + str(fail_times))
                 logger.debug("RESPONSE send_qun_msg rsp:" + str(rsp))
                 time.sleep(2)
@@ -1061,9 +1069,9 @@ class QQBot(object):
         try:
             req_url = "http://d1.web2.qq.com/channel/send_buddy_msg2"
             data = {
-                'r': '{{"to":%s, "face":594, "content":"[\\"%s\\", [\\"font\\",'
-                     '{{\\"name\\":\\"Arial\\", \\"size\\":\\"10\\", \\"style\\":[0, 0, 0], \\"color\\":\\"000000\\"}}'
-                     ']]", "clientid":%s, "msg_id":%s, "psessionid":"%s"}}' % (
+                'r': '{"to":%s, "face":594, "content":"[\\"%s\\", [\\"font\\",'
+                     '{\\"name\\":\\"Arial\\", \\"size\\":\\"10\\", \\"style\\":[0, 0, 0], \\"color\\":\\"000000\\"}'
+                     ']]", "clientid":%s, "msg_id":%s, "psessionid":"%s"}' % (
                         uin, fix_content, self.client_id, msg_id, self.psessionid),
                 'clientid': self.client_id,
                 'psessionid': self.psessionid
@@ -1093,9 +1101,9 @@ class QQBot(object):
             logger.info("Starting send discuss group message: %s" % reply_content)
             req_url = "http://d1.web2.qq.com/channel/send_discu_msg2"
             data = {
-                'r': '{{"did":%s, "face":564,"content":"[\\"%s\\",[\\"font\\",'
-                     '{{\\"name\\":\\"Arial\\",\\"size\\":\\"10\\",\\"style\\":[0,0,0],\\"color\\":\\"000000\\"}}'
-                     ']]","clientid":%s,"msg_id":%s,"psessionid":"%s"}}' % (
+                'r': '{"did":%s, "face":564,"content":"[\\"%s\\",[\\"font\\",'
+                     '{\\"name\\":\\"Arial\\",\\"size\\":\\"10\\",\\"style\\":[0,0,0],\\"color\\":\\"000000\\"}'
+                     ']]","clientid":%s,"msg_id":%s,"psessionid":"%s"}' % (
                         did, fix_content, self.client_id, msg_id, self.psessionid),
                 'clientid': self.client_id,
                 'psessionid': self.psessionid
